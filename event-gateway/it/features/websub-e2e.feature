@@ -44,7 +44,7 @@ Feature: WebSub End-to-End Flow
       }
       """
     Then the response should be successful
-    And I wait for 3 seconds
+    And the WebSub API "/e2e-subscribe" version "v1.0" is reachable within 30 seconds
 
     When I subscribe to topic "issues" on API "e2e-subscribe" version "v1.0" with callback "http://wh-listener:8090/"
     Then the response status code should be 202
@@ -83,7 +83,7 @@ Feature: WebSub End-to-End Flow
       }
       """
     Then the response should be successful
-    And I wait for 3 seconds
+    And the WebSub API "/e2e-auth" version "v1.0" is reachable within 30 seconds
 
     Given I authenticate using basic auth as "admin"
     When I subscribe to topic "events" on API "e2e-auth" version "v1.0" with callback "http://wh-listener:8090/"
@@ -112,7 +112,7 @@ Feature: WebSub End-to-End Flow
       }
       """
     Then the response should be successful
-    And I wait for 3 seconds
+    And the WebSub API "/e2e-unknown-topic" version "v1.0" is reachable within 30 seconds
 
     When I subscribe to topic "does-not-exist" on API "e2e-unknown-topic" version "v1.0" with callback "http://wh-listener:8090/"
     Then the response status code should be 404
@@ -142,7 +142,7 @@ Feature: WebSub End-to-End Flow
       }
       """
     Then the response should be successful
-    And I wait for 3 seconds
+    And the WebSub API "/e2e-publish" version "v1.0" is reachable within 30 seconds
 
     When I publish event "order-created-001" to topic "orders" on API "e2e-publish" version "v1.0"
     Then the response status code should be 202
@@ -170,7 +170,7 @@ Feature: WebSub End-to-End Flow
       }
       """
     Then the response should be successful
-    And I wait for 3 seconds
+    And the WebSub API "/e2e-bad-topic" version "v1.0" is reachable within 30 seconds
 
     When I publish event "event-body" to topic "imaginary" on API "e2e-bad-topic" version "v1.0"
     Then the response status code should be 404
@@ -204,7 +204,7 @@ Feature: WebSub End-to-End Flow
       }
       """
     Then the response should be successful
-    And I wait for 3 seconds
+    And the WebSub API "/e2e-full" version "v1.0" is reachable within 30 seconds
 
     # Step 2: Subscribe to the "issues" topic
     When I subscribe to topic "issues" on API "e2e-full" version "v1.0" with callback "http://wh-listener:8090/"
@@ -248,7 +248,7 @@ Feature: WebSub End-to-End Flow
       }
       """
     Then the response should be successful
-    And I wait for 3 seconds
+    And the WebSub API "/e2e-unsub" version "v1.0" is reachable within 30 seconds
 
     When I subscribe to topic "news" on API "e2e-unsub" version "v1.0" with callback "http://wh-listener:8090/"
     Then the response status code should be 202
