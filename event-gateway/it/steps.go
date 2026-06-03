@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -98,7 +99,7 @@ func RegisterCommonSteps(ctx *godog.ScenarioContext, state *TestState) {
 
 	ctx.Step(`^the WebSub API "([^"]*)" version "([^"]*)" is reachable within (\d+) seconds$`,
 		func(apiCtx, version string, secs int) error {
-			hubURL := fmt.Sprintf("%s/%s/%s/hub", state.Config.WebSubURL, apiCtx, version)
+			hubURL := fmt.Sprintf("%s/%s/%s/hub", state.Config.WebSubURL, strings.TrimPrefix(apiCtx, "/"), version)
 			deadline := time.Now().Add(time.Duration(secs) * time.Second)
 			for time.Now().Before(deadline) {
 				resp, err := state.HTTPClient.Get(hubURL)
@@ -526,10 +527,24 @@ func RegisterWebBrokerSteps(ctx *godog.ScenarioContext, state *TestState) {
 
 // kafkaClient creates a kgo.Client configured to match docker-compose.dev.yaml:
 // SASL/PLAIN + TLS (InsecureSkipVerify for the self-signed cert from kafka-cert-init).
+//
+// The Kafka advertised listener is "kafka:29092" (Docker-internal hostname).
+// kafkaDialer transparently rewrites "kafka" → "localhost" so that the IT process
+// running on the host can reach the port-mapped broker without modifying /etc/hosts.
 func kafkaClient(cfg *Config, extra ...kgo.Opt) (*kgo.Client, error) {
+	tlsCfg := &tls.Config{InsecureSkipVerify: true} //nolint:gosec
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(cfg.KafkaBrokers...),
-		kgo.DialTLSConfig(&tls.Config{InsecureSkipVerify: true}), //nolint:gosec
+		kgo.Dialer(func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			if host == "kafka" {
+				addr = net.JoinHostPort("localhost", port)
+			}
+			return (&tls.Dialer{NetDialer: &net.Dialer{}, Config: tlsCfg}).DialContext(ctx, network, addr)
+		}),
 		kgo.SASL(plain.Auth{User: cfg.KafkaUsername, Pass: cfg.KafkaPassword}.AsMechanism()),
 	}
 	return kgo.NewClient(append(opts, extra...)...)
